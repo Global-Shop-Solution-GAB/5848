@@ -1,0 +1,1367 @@
+﻿Program.Sub.ScreenSU.Start
+Gui.frmMain..Create
+Gui.frmMain..Caption("Comments Upload")
+Gui.frmMain..Size(4260,3495)
+Gui.frmMain..MinX(0)
+Gui.frmMain..MinY(0)
+Gui.frmMain..Position(0,0)
+Gui.frmMain..BackColor(-2147483633)
+Gui.frmMain..MousePointer(0)
+Gui.frmMain..Event(UnLoad,frmMain_UnLoad)
+Gui.frmMain.ddlSelect.Create(DropDownList)
+Gui.frmMain.ddlSelect.Size(3360,330)
+Gui.frmMain.ddlSelect.Position(300,315)
+Gui.frmMain.ddlSelect.AddItem("Inventory Extra Description")
+Gui.frmMain.ddlSelect.AddItem("Router Extra Description")
+Gui.frmMain.ddlSelect.AddItem("Work Order Comments")
+Gui.frmMain.ddlSelect.AddItem("Purchase Order Header Comments")
+Gui.frmMain.ddlSelect.AddItem("Purchase Order Line Comments")
+Gui.frmMain.ddlSelect.AddItem("Sales Order Header Comments")
+Gui.frmMain.ddlSelect.AddItem("Sales Order Line Comments")
+Gui.frmMain.ddlSelect.AddItem("Text Code Comments")
+Gui.frmMain.cmdUpload.Create(Button)
+Gui.frmMain.cmdUpload.Size(1575,375)
+Gui.frmMain.cmdUpload.Position(1200,2100)
+Gui.frmMain.cmdUpload.Caption("Upload")
+Gui.frmMain.cmdUpload.DefaultValue("")
+Gui.frmMain.cmdUpload.Event(Click,cmdUpload_Click)
+Gui.frmMain.lblType.Create(Label,"Upload Type",True,1935,210,0,75,90,True,0,"Arial",8,-2147483633,0)
+Gui.frmMain.lblPath.Create(Label,"Spreadsheet Path",True,1935,210,0,75,1395,True,0,"Arial",8,-2147483633,0)
+Gui.frmMain.txtPath.Create(TextBox,"",True,2790,300,0,300,1620,True,0,"Arial",8,-2147483643,1)
+Gui.frmMain.cmdExplorer.Create(Button)
+Gui.frmMain.cmdExplorer.Size(375,375)
+Gui.frmMain.cmdExplorer.Position(3285,1590)
+Gui.frmMain.cmdExplorer.Caption("^")
+Gui.frmMain.cmdExplorer.Event(Click,cmdExplorer_Click)
+Gui.frmMain.lblWarning.Create(Label,"***Remove all column headings before uploading***",True,3765,255,0,75,2625,True,0,"Arial",8,-2147483633,0)
+Gui.frmMain.lblWarning.ForeColor(255)
+Gui.frmMain.lblAppDel.Create(Label,"Append/Delete",True,1935,195,0,75,765,True,0,"Arial",8,-2147483633,0)
+Gui.frmMain.ddlAppDel.Create(DropDownList)
+Gui.frmMain.ddlAppDel.Size(3360,330)
+Gui.frmMain.ddlAppDel.Position(300,990)
+Gui.frmMain.ddlAppDel.AddItem("Append to Existing Data")
+Gui.frmMain.ddlAppDel.AddItem("Delete Existing Data")
+Program.Sub.ScreenSU.End
+
+Program.Sub.Preflight.Start
+	v.Global.iTableCount.Declare
+	v.Global.sBody.Declare
+
+Program.Sub.Preflight.End
+
+Program.Sub.Main.Start
+	F.Intrinsic.Control.Try
+	v.Local.sError.Declare
+	
+	v.Local.sIcon.Declare
+		
+	F.Intrinsic.String.Build("{0}\gss2.ico",v.Caller.GasDir,v.Local.sIcon)
+	Gui.frmMain..Icon(v.Local.sIcon)
+
+	Gui.frmMain..Show
+	
+	F.Intrinsic.Control.Catch
+		F.Intrinsic.String.Build("Project: GAB_5848_Comments_Upload.g2u{0}{0}Subroutine: {1}{0}Error Occurred {2} with description {3}.",v.Ambient.NewLine,v.Ambient.CurrentSubroutine,v.Ambient.ErrorNumber,v.Ambient.ErrorDescription,v.Local.sError)
+		F.Intrinsic.UI.Msgbox(v.Local.sError)
+		F.Intrinsic.Control.End
+	F.Intrinsic.Control.EndTry
+	
+Program.Sub.Main.End
+
+Program.Sub.CheckDir.Start
+	F.Intrinsic.Control.Try
+	v.Local.sError.Declare
+
+	'Create backup directories
+	'..\global\files\history\comment_upload\type\date
+	
+	v.Local.bExists.Declare
+	v.Local.sPath.Declare
+	v.Local.sDate.Declare
+
+	F.Intrinsic.String.Build("{0}\FILES\HISTORY\COMMENT_UPLOAD\",v.Caller.GlobalDir,v.Local.sPath)
+	F.Intrinsic.File.DirExists(v.Local.sPath,v.Local.bExists)
+	
+	F.Intrinsic.Control.If(v.Local.bExists,=,0)
+		F.Intrinsic.File.CreateDir(v.Local.sPath)
+	F.Intrinsic.Control.EndIf
+	
+	F.Intrinsic.String.DateString(v.Ambient.Date,v.Local.sDate)
+	F.Intrinsic.String.Replace(v.Local.sDate,"/","",v.Local.sDate)
+	
+	'Create directory for backup file based on dropdown variable
+		F.Intrinsic.String.Build("{0}\FILES\HISTORY\COMMENT_UPLOAD\{1}\{2}\",v.Caller.GlobalDir,v.Global.sSelection,v.Local.sDate,v.Local.sPath)
+		F.Intrinsic.File.CreateDir(v.Local.sPath)
+
+	F.Intrinsic.Control.CallSub(backup)
+	
+	F.Intrinsic.Control.Catch
+		F.Intrinsic.String.Build("Project: GAB_5848_Comments_Upload.g2u{0}{0}Subroutine: {1}{0}Error Occurred {2} with description {3}.",v.Ambient.NewLine,v.Ambient.CurrentSubroutine,v.Ambient.ErrorNumber,v.Ambient.ErrorDescription,v.Local.sError)
+		F.Intrinsic.UI.Msgbox(v.Local.sError)
+		F.Intrinsic.Control.End
+	F.Intrinsic.Control.EndTry
+
+Program.Sub.CheckDir.End
+
+Program.Sub.frmMain_UnLoad.Start
+	F.Intrinsic.Control.Try
+	v.Local.sError.Declare
+
+	'Close PCC Connection
+	F.Intrinsic.Control.End
+	
+	F.Intrinsic.Control.Catch
+		F.Intrinsic.String.Build("Project: GAB_5848_Comments_Upload.g2u{0}{0}Subroutine: {1}{0}Error Occurred {2} with description {3}.",v.Ambient.NewLine,v.Ambient.CurrentSubroutine,v.Ambient.ErrorNumber,v.Ambient.ErrorDescription,v.Local.sError)
+		F.Intrinsic.UI.Msgbox(v.Local.sError)
+		F.Intrinsic.Control.End
+	F.Intrinsic.Control.EndTry
+
+Program.Sub.frmMain_UnLoad.End
+
+Program.Sub.cmdUpload_Click.Start
+	F.Intrinsic.Control.Try
+	v.Local.sError.Declare
+	
+	v.Global.sSelection.Declare
+	v.Global.sAppDel.Declare
+	
+	v.Local.sRet.Declare
+	v.Local.sMsg.Declare
+	
+	F.Intrinsic.Control.If(v.Screen.frmMain!ddlSelect.Value,=,"")
+		F.Intrinsic.UI.Msgbox("Please select an upload type.","Selection Required")
+		F.Intrinsic.Control.ExitSub
+	F.Intrinsic.Control.ElseIf(v.Screen.frmMain!ddlAppDel.Value,=,"")
+		F.Intrinsic.UI.Msgbox("Please choose to either append or delete.","Selection Required")
+		F.Intrinsic.Control.ExitSub
+	F.Intrinsic.Control.ElseIf(v.Screen.frmMain!txtPath.Text,=,"")
+		F.Intrinsic.UI.Msgbox("Please specify the path to the upload spreadsheet.","Selection Required")
+		F.Intrinsic.Control.ExitSub
+
+	F.Intrinsic.Control.Else
+		v.Global.sSelection.Set(v.Screen.frmMain!ddlSelect.Value)
+		v.Global.sAppDel.Set(v.Screen.frmMain!ddlAppDel.Value)
+		
+		F.Intrinsic.String.Build("Are you sure you want to upload {0}?",v.Global.sSelection,v.Local.sMsg)
+		
+		F.Intrinsic.UI.Msgbox(v.Local.sMsg,"Upload Comments",4,v.Local.sRet)
+		
+		F.Intrinsic.Control.If(v.Local.sRet,=,6)
+			F.Intrinsic.Control.CallSub(checkdir)
+		F.Intrinsic.Control.EndIf
+	F.Intrinsic.Control.EndIf
+
+	F.Intrinsic.Control.Catch
+		F.Intrinsic.String.Build("Project: GAB_5848_Comments_Upload.g2u{0}{0}Subroutine: {1}{0}Error Occurred {2} with description {3}.",v.Ambient.NewLine,v.Ambient.CurrentSubroutine,v.Ambient.ErrorNumber,v.Ambient.ErrorDescription,v.Local.sError)
+		F.Intrinsic.UI.Msgbox(v.Local.sError)
+		F.Intrinsic.Control.End
+	F.Intrinsic.Control.EndTry
+	
+Program.Sub.cmdUpload_Click.End
+
+Program.Sub.cmdExplorer_Click.Start
+	F.Intrinsic.Control.Try
+	v.Local.sError.Declare
+
+	v.Global.sPath.Declare
+	
+	F.Intrinsic.UI.ShowOpenFileDialog("","",v.Global.sPath)
+	
+	Gui.frmMain.txtPath.Text(v.Global.sPath)
+	
+	F.Intrinsic.Control.Catch
+		F.Intrinsic.String.Build("Project: GAB_5848_Comments_Upload.g2u{0}{0}Subroutine: {1}{0}Error Occurred {2} with description {3}.",v.Ambient.NewLine,v.Ambient.CurrentSubroutine,v.Ambient.ErrorNumber,v.Ambient.ErrorDescription,v.Local.sError)
+		F.Intrinsic.UI.Msgbox(v.Local.sError)
+		F.Intrinsic.Control.End
+	F.Intrinsic.Control.EndTry
+
+Program.Sub.cmdExplorer_Click.End
+
+Program.Sub.Backup.Start
+	F.Intrinsic.Control.Try
+	v.Local.sError.Declare
+
+	v.Local.sPath.Declare
+	v.Local.sPath2.Declare
+	v.Local.sDate.Declare
+	
+	F.Intrinsic.String.DateString(v.Ambient.Date,v.Local.sDate)
+	F.Intrinsic.String.Replace(v.Local.sDate,"/","",v.Local.sDate)
+	
+	'Backup pertinent files
+	F.Intrinsic.Control.If(v.Global.sSelection,=,"Inventory Extra Description")	
+		'cccREQXD-V0	INV_EXTRA_TEXT
+		F.Intrinsic.String.Build("{0}\FILES\{1}REQXD-V0",v.Caller.GlobalDir,v.Caller.CompanyCode,v.Local.sPath)
+		F.Intrinsic.String.Build("{0}\FILES\HISTORY\COMMENT_UPLOAD\{1}\{2}\{3}REQXD-V0",v.Caller.GlobalDir,v.Global.sSelection,v.Local.sDate,v.Caller.CompanyCode,v.Local.sPath2)
+		F.Intrinsic.File.CopyFile(v.Local.sPath,v.Local.sPath2)
+		Gui.frmMain..Enabled(false)
+		F.Intrinsic.Control.CallSub(insertinventory)
+	F.Intrinsic.Control.ElseIf(v.Global.sSelection,=,"Router Extra Description")
+		'cccRTRTXT-V0	RTR_SEQ_COMMENTS
+		F.Intrinsic.String.Build("{0}\FILES\{1}RTRTXT-V0",v.Caller.GlobalDir,v.Caller.CompanyCode,v.Local.sPath)
+		F.Intrinsic.String.Build("{0}\FILES\HISTORY\COMMENT_UPLOAD\{1}\{2}\{3}RTRTXT-V0",v.Caller.GlobalDir,v.Global.sSelection,v.Local.sDate,v.Caller.CompanyCode,v.Local.sPath2)
+		F.Intrinsic.File.CopyFile(v.Local.sPath,v.Local.sPath2)
+		Gui.frmMain..Enabled(false)
+		F.Intrinsic.Control.CallSub(insertrouter)
+	F.Intrinsic.Control.ElseIf(v.Global.sSelection,=,"Work Order Comments")
+		'cccJOBTXT-V0	WO_SEQ_COMMENTS
+		F.Intrinsic.String.Build("{0}\FILES\{1}JOBTXT-V0",v.Caller.GlobalDir,v.Caller.CompanyCode,v.Local.sPath)
+		F.Intrinsic.String.Build("{0}\FILES\HISTORY\COMMENT_UPLOAD\{1}\{2}\{3}JOBTXT-V0",v.Caller.GlobalDir,v.Global.sSelection,v.Local.sDate,v.Caller.CompanyCode,v.Local.sPath2)
+		F.Intrinsic.File.CopyFile(v.Local.sPath,v.Local.sPath2)
+		Gui.frmMain..Enabled(false)
+		F.Intrinsic.Control.CallSub(insertworkorder)
+	F.Intrinsic.Control.ElseIf(v.Global.sSelection,=,"Purchase Order Header Comments")
+		'cccPOTXTHF-V0	PO_HF_TEXT
+		F.Intrinsic.String.Build("{0}\FILES\{1}POTXTHF-V0",v.Caller.GlobalDir,v.Caller.CompanyCode,v.Local.sPath)
+		F.Intrinsic.String.Build("{0}\FILES\HISTORY\COMMENT_UPLOAD\{1}\{2}\{3}POTXTHF-V0",v.Caller.GlobalDir,v.Global.sSelection,v.Local.sDate,v.Caller.CompanyCode,v.Local.sPath2)
+		F.Intrinsic.File.CopyFile(v.Local.sPath,v.Local.sPath2)
+		Gui.frmMain..Enabled(false)
+		F.Intrinsic.Control.CallSub(insertpoheader)
+	F.Intrinsic.Control.ElseIf(v.Global.sSelection,=,"Purchase Order Line Comments")
+		'cccPOTXTLN-V0	PO_LN_TEXT
+		F.Intrinsic.String.Build("{0}\FILES\{1}POTXTLN-V0",v.Caller.GlobalDir,v.Caller.CompanyCode,v.Local.sPath)
+		F.Intrinsic.String.Build("{0}\FILES\HISTORY\COMMENT_UPLOAD\{1}\{2}\{3}POTXTLN-V0",v.Caller.GlobalDir,v.Global.sSelection,v.Local.sDate,v.Caller.CompanyCode,v.Local.sPath2)
+		F.Intrinsic.File.CopyFile(v.Local.sPath,v.Local.sPath2)
+		Gui.frmMain..Enabled(false)
+		F.Intrinsic.Control.CallSub(insertpoline)
+	F.Intrinsic.Control.ElseIf(v.Global.sSelection,=,"Sales Order Header Comments")
+		'cccSOTXTHF-V0	ORDER_HF_TEXT
+		F.Intrinsic.String.Build("{0}\FILES\{1}SOTXTHF-V0",v.Caller.GlobalDir,v.Caller.CompanyCode,v.Local.sPath)
+		F.Intrinsic.String.Build("{0}\FILES\HISTORY\COMMENT_UPLOAD\{1}\{2}\{3}SOTXTHF-V0",v.Caller.GlobalDir,v.Global.sSelection,v.Local.sDate,v.Caller.CompanyCode,v.Local.sPath2)
+		F.Intrinsic.File.CopyFile(v.Local.sPath,v.Local.sPath2)
+		Gui.frmMain..Enabled(false)
+		F.Intrinsic.Control.CallSub(insertsoheader)
+	F.Intrinsic.Control.ElseIf(v.Global.sSelection,=,"Sales Order Line Comments")
+		'cccSOTXTLN-V0	ORDER_LN_TEXT
+		F.Intrinsic.String.Build("{0}\FILES\{1}SOTXTLN-V0",v.Caller.GlobalDir,v.Caller.CompanyCode,v.Local.sPath)
+		F.Intrinsic.String.Build("{0}\FILES\HISTORY\COMMENT_UPLOAD\{1}\{2}\{3}SOTXTLN-V0",v.Caller.GlobalDir,v.Global.sSelection,v.Local.sDate,v.Caller.CompanyCode,v.Local.sPath2)
+		F.Intrinsic.File.CopyFile(v.Local.sPath,v.Local.sPath2)
+		Gui.frmMain..Enabled(false)
+		F.Intrinsic.Control.CallSub(insertsoline)
+	F.Intrinsic.Control.ElseIf(v.Global.sSelection,=,"Text Code Comments")
+		'cccSOTXTLN-V0	ORDER_LN_TEXT
+		F.Intrinsic.String.Build("{0}\FILES\{1}TXTCODE-V0",v.Caller.GlobalDir,v.Caller.CompanyCode,v.Local.sPath)
+		F.Intrinsic.String.Build("{0}\FILES\HISTORY\COMMENT_UPLOAD\{1}\{2}\{3}TXTCODE-V0",v.Caller.GlobalDir,v.Global.sSelection,v.Local.sDate,v.Caller.CompanyCode,v.Local.sPath2)
+		F.Intrinsic.File.CopyFile(v.Local.sPath,v.Local.sPath2)
+		Gui.frmMain..Enabled(false)
+		F.Intrinsic.Control.CallSub(inserttextcode)
+	F.Intrinsic.Control.EndIf
+	
+	F.Intrinsic.Control.Catch
+		F.Intrinsic.String.Build("Project: GAB_5848_Comments_Upload.g2u{0}{0}Subroutine: {1}{0}Error Occurred {2} with description {3}.",v.Ambient.NewLine,v.Ambient.CurrentSubroutine,v.Ambient.ErrorNumber,v.Ambient.ErrorDescription,v.Local.sError)
+		F.Intrinsic.UI.Msgbox(v.Local.sError)
+		F.Intrinsic.Control.End
+	F.Intrinsic.Control.EndTry
+	
+Program.Sub.Backup.End
+
+Program.Sub.InsertRouter.Start
+	F.Intrinsic.Control.Try
+	v.Local.sError.Declare
+	v.Local.sComment.Declare
+
+	F.ODBC.Connection!conA.OpenConnection(v.Ambient.PDSN,v.Ambient.PUser,v.Ambient.PPass)
+
+	v.Local.sDataString.Declare
+	v.Local.iCnt.Declare
+	v.Local.sSQL.Declare
+	v.Local.sSQL2.Declare
+	v.Local.sFile.Declare
+	v.Local.sDate.Declare
+	v.Local.iTemp.Declare
+	v.Local.sSpace.Declare
+	v.Local.sRouter.Declare
+	v.Local.sRouterRev.Declare
+	
+	F.Intrinsic.String.DateString(v.Ambient.Date,v.Local.sDate)
+	F.Intrinsic.String.Replace(v.Local.sDate,"/","",v.Local.sDate)
+	
+	F.ODBC.Connection!conA.ExecuteAndReturn("SELECT COUNT(RTR_NUMBER) FROM RTR_SEQ_COMMENTS",v.Global.iTableCount)
+	
+	F.Intrinsic.Control.If(v.Global.sAppDel,=,"Delete Existing Data")
+		F.ODBC.Connection!conA.Execute("DELETE FROM RTR_SEQ_COMMENTS")
+	F.Intrinsic.Control.EndIf
+	
+	'Read spreadsheet, convert it to a string, then execute insert statement for each row - *!* for cells and $!$ for rows
+	F.Automation.MSExcel.ReadSpreadsheet(v.Global.sPath,v.Local.sDataString)
+	
+	F.Intrinsic.Control.If(v.DataTable.dtRouter.Exists)
+		F.Data.DataTable.Close("dtRouter")
+	F.Intrinsic.Control.EndIf
+	
+	F.Data.DataTable.CreateFromString("dtRouter",v.Local.sDataString,"ROUTER*!*REV*!*SEQ*!*COMMENT","String*!*String*!*String*!*String","*!*","$!$",true)
+
+	F.Intrinsic.Control.For(v.Local.iCnt,0,v.DataTable.dtRouter.RowCount--,1)
+		v.Local.sRouter.Set(v.DataTable.dtRouter(v.Local.iCnt).ROUTER!FieldValTrim)
+		F.Intrinsic.String.Len(v.Local.sRouter,v.Local.iTemp)
+		F.Intrinsic.Math.Sub(17,v.Local.iTemp,v.Local.iTemp)
+		
+F.Intrinsic.Control.If(v.Local.iTemp,=,0)		
+			v.Local.sSpace.Set("")
+		F.Intrinsic.Control.ElseIf(v.Local.iTemp,=,1)
+			v.Local.sSpace.Set(" ")
+		F.Intrinsic.Control.ElseIf(v.Local.iTemp,=,2)
+			v.Local.sSpace.Set("  ")
+		F.Intrinsic.Control.ElseIf(v.Local.iTemp,=,3)
+			v.Local.sSpace.Set("   ")
+		F.Intrinsic.Control.ElseIf(v.Local.iTemp,=,4)
+			v.Local.sSpace.Set("    ")
+		F.Intrinsic.Control.ElseIf(v.Local.iTemp,=,5)
+			v.Local.sSpace.Set("     ")
+		F.Intrinsic.Control.ElseIf(v.Local.iTemp,=,6)
+			v.Local.sSpace.Set("      ")
+		F.Intrinsic.Control.ElseIf(v.Local.iTemp,=,7)
+			v.Local.sSpace.Set("       ")
+		F.Intrinsic.Control.ElseIf(v.Local.iTemp,=,8)
+			v.Local.sSpace.Set("        ")
+		F.Intrinsic.Control.ElseIf(v.Local.iTemp,=,9)
+			v.Local.sSpace.Set("         ")
+		F.Intrinsic.Control.ElseIf(v.Local.iTemp,=,10)
+			v.Local.sSpace.Set("          ")
+		F.Intrinsic.Control.ElseIf(v.Local.iTemp,=,11)
+			v.Local.sSpace.Set("           ")
+		F.Intrinsic.Control.ElseIf(v.Local.iTemp,=,12)
+			v.Local.sSpace.Set("            ")
+		F.Intrinsic.Control.ElseIf(v.Local.iTemp,=,13)
+			v.Local.sSpace.Set("             ")
+		F.Intrinsic.Control.ElseIf(v.Local.iTemp,=,14)
+			v.Local.sSpace.Set("              ")
+		F.Intrinsic.Control.ElseIf(v.Local.iTemp,=,15)
+			v.Local.sSpace.Set("               ")
+		F.Intrinsic.Control.ElseIf(v.Local.iTemp,=,16)
+			v.Local.sSpace.Set("                ")
+		F.Intrinsic.Control.EndIf
+		F.Intrinsic.String.Concat(v.Local.sRouter,v.Local.sSpace,v.DataTable.dtRouter(v.Local.iCnt).REV!FieldValTrim,v.Local.sRouterRev)
+		F.Intrinsic.String.Build("SELECT * FROM RTR_SEQ_COMMENTS WHERE RTR_NUMBER = '{0}' AND RTR_SEQ = '{1}'",v.Local.sRouterRev,v.DataTable.dtRouter(v.Local.iCnt).SEQ!FieldValTrim,v.Local.sSQL2)
+		F.ODBC.Connection!conA.OpenLocalRecordsetRO("rstRouter",v.Local.sSQL2)
+		F.Intrinsic.Control.If(v.ODBC.conA!rstRouter.EOF,=,true)
+			v.Local.sComment.Set(v.DataTable.dtRouter(v.Local.iCnt).COMMENT!FieldValTrim)
+			F.Intrinsic.String.Build("INSERT INTO RTR_SEQ_COMMENTS VALUES ('{0}', '{1}', '{2}')",v.Local.sRouterRev,v.DataTable.dtRouter(v.Local.iCnt).SEQ!FieldValTrim,v.Local.sComment.PSQLFriendly,v.Local.sSQL)
+			F.ODBC.Connection!conA.Execute(v.Local.sSQL)
+		F.Intrinsic.Control.Else
+			F.Intrinsic.Control.If(v.Global.sBody,=,"")
+				F.Intrinsic.String.Build("Duplicate router: {0} sequence {1}{2}",v.Local.sRouterRev,v.DataTable.dtRouter(v.Local.iCnt).SEQ!FieldValTrim,v.Ambient.NewLine,v.Global.sBody)
+			F.Intrinsic.Control.Else
+				F.Intrinsic.String.Build("{0}Duplicate router: {1} sequence {2}{3}",v.Global.sBody,v.Local.sRouterRev,v.DataTable.dtRouter(v.Local.iCnt).SEQ!FieldValTrim,v.Ambient.NewLine,v.Global.sBody)
+			F.Intrinsic.Control.EndIf
+		F.Intrinsic.Control.EndIf
+		F.ODBC.conA!rstRouter.Close
+	F.Intrinsic.Control.Next(v.Local.iCnt)
+	
+	F.Data.DataTable.Close("dtRouter")
+	
+	F.Intrinsic.String.Build("{0}\FILES\HISTORY\COMMENT_UPLOAD\{1}\{2}\CommentsUploadErrorLog.txt",v.Caller.GlobalDir,v.Global.sSelection,v.Local.sDate,v.Local.sFile)
+	F.Intrinsic.File.String2File(v.Local.sFile,v.Global.sBody)
+	
+	F.Intrinsic.Control.CallSub(checkrouter)
+	
+	F.Intrinsic.Control.Catch
+		F.Intrinsic.String.Build("Project: GAB_5848_Comments_Upload.g2u{0}{0}Subroutine: {1}{0}Error Occurred {2} with description {3}.",v.Ambient.NewLine,v.Ambient.CurrentSubroutine,v.Ambient.ErrorNumber,v.Ambient.ErrorDescription,v.Local.sError)
+		F.Intrinsic.UI.Msgbox(v.Local.sError)
+		F.Intrinsic.Control.End
+	F.Intrinsic.Control.EndTry
+	
+Program.Sub.InsertRouter.End
+
+Program.Sub.CheckRouter.Start
+	F.Intrinsic.Control.Try
+	v.Local.sError.Declare
+
+	v.Local.iExcelCount.Declare
+	v.Local.iTableCountAfter.Declare
+	v.Local.iTemp.Declare
+	v.Local.sMsg.Declare
+	v.Local.sFile.Declare
+	v.Local.sDate.Declare
+	
+	F.Intrinsic.String.DateString(v.Ambient.Date,v.Local.sDate)
+	F.Intrinsic.String.Replace(v.Local.sDate,"/","",v.Local.sDate)
+	
+	F.Automation.MSExcel.CreateAppObject("Router")
+	F.Automation.MSExcel.OpenWorkbook("Router","WBR",v.Global.sPath)
+	F.Automation.MSExcel.OpenWorksheet("WBR","WS1",1)
+	F.Automation.MSExcel.RowCount("WS1",v.Local.iExcelCount)
+	F.Automation.MSExcel.DestroyAllObjects("Router","WBR","WS1")
+	
+	F.ODBC.Connection!conA.ExecuteAndReturn("SELECT COUNT(RTR_NUMBER) FROM RTR_SEQ_COMMENTS",v.Local.iTableCountAfter)
+	
+	F.Intrinsic.String.Build("{0} record(s) uploaded.",v.Local.iExcelCount,v.Local.sMsg)
+	
+	F.Intrinsic.Control.If(v.Global.sBody,=,"")
+		F.Intrinsic.UI.Msgbox(v.Local.sMsg,"Upload Complete")
+	F.Intrinsic.Control.Else
+		F.Intrinsic.String.Build("{0}\FILES\HISTORY\COMMENT_UPLOAD\{1}\{2}\CommentsUploadErrorLog.txt",v.Caller.GlobalDir,v.Global.sSelection,v.Local.sDate,v.Local.sFile)
+		F.Intrinsic.Task.ShellExec(0,"",v.Local.sFile,"","",1)
+		F.Intrinsic.UI.Msgbox("Not all records were uploaded.  Please check the error log.","Error")
+	F.Intrinsic.Control.EndIf
+	
+	Gui.frmMain.txtPath.Text("")
+	
+	F.ODBC.Connection!conA.Close
+	
+	F.Intrinsic.Control.Catch
+		F.Intrinsic.String.Build("Project: GAB_5848_Comments_Upload.g2u{0}{0}Subroutine: {1}{0}Error Occurred {2} with description {3}.",v.Ambient.NewLine,v.Ambient.CurrentSubroutine,v.Ambient.ErrorNumber,v.Ambient.ErrorDescription,v.Local.sError)
+		F.Intrinsic.UI.Msgbox(v.Local.sError)
+		F.Intrinsic.Control.End
+	F.Intrinsic.Control.EndTry
+	
+	Gui.frmMain..Enabled(true)
+	
+	v.Global.iTableCount.Set("")
+	v.Global.sAppDel.Set("")
+	v.Global.sBody.Set("")
+	v.Global.sPath.Set("")
+	v.Global.sSelection.Set("")
+
+Program.Sub.CheckRouter.End
+
+Program.Sub.InsertInventory.Start
+	F.Intrinsic.Control.Try
+	v.Local.sError.Declare
+
+	F.ODBC.Connection!conA.OpenConnection(v.Ambient.PDSN,v.Ambient.PUser,v.Ambient.PPass)
+	
+	v.Local.sDataString.Declare
+	v.Local.iCnt.Declare
+	v.Local.sPart.Declare
+	v.Local.sPartRev.Declare
+	v.Local.sSQL.Declare
+	v.Local.sSQL2.Declare
+	v.Local.iTemp.Declare
+	v.Local.sSpace.Declare
+	v.Local.sfile.Declare
+	v.Local.sDate.Declare
+	v.Local.sComment.Declare
+	
+	F.Intrinsic.String.DateString(v.Ambient.Date,v.Local.sDate)
+	F.Intrinsic.String.Replace(v.Local.sDate,"/","",v.Local.sDate)
+	
+	F.ODBC.Connection!conA.ExecuteAndReturn("SELECT COUNT(PART) FROM INV_EXTRA_TEXT",v.Global.iTableCount)
+	
+	F.Intrinsic.Control.If(v.Global.sAppDel,=,"Delete Existing Data")
+		F.ODBC.Connection!conA.Execute("DELETE FROM INV_EXTRA_TEXT")
+	F.Intrinsic.Control.EndIf
+	
+	F.Automation.MSExcel.ReadSpreadsheet(v.Global.sPath,v.Local.sDataString)
+	
+	F.Intrinsic.Control.If(v.DataTable.dtInventory.Exists)
+		F.Data.DataTable.Close("dtInventory")
+	F.Intrinsic.Control.EndIf
+	
+	'Read spreadsheet, convert it to a string, then execute insert statement for each row - *!* for cells and $!$ for rows
+	F.Data.DataTable.CreateFromString("dtInventory",v.Local.sDataString,"PART*!*REV*!*COMMENT","String*!*String*!*String","*!*","$!$",true)
+	
+	F.Intrinsic.Control.For(v.Local.iCnt,0,v.DataTable.dtInventory.RowCount--,1)
+		v.Local.sPart.Set(v.DataTable.dtInventory(v.Local.iCnt).PART!FieldValTrim)
+		F.Intrinsic.String.Len(v.Local.sPart,v.Local.iTemp)
+		F.Intrinsic.Math.Sub(17,v.Local.iTemp.Float,v.Local.iTemp)
+		
+		F.Intrinsic.Control.If(v.Local.iTemp,=,1)
+			v.Local.sSpace.Set(" ")
+		F.Intrinsic.Control.ElseIf(v.Local.iTemp,=,2)
+			v.Local.sSpace.Set("  ")
+		F.Intrinsic.Control.ElseIf(v.Local.iTemp,=,3)
+			v.Local.sSpace.Set("   ")
+		F.Intrinsic.Control.ElseIf(v.Local.iTemp,=,4)
+			v.Local.sSpace.Set("    ")
+		F.Intrinsic.Control.ElseIf(v.Local.iTemp,=,5)
+			v.Local.sSpace.Set("     ")
+		F.Intrinsic.Control.ElseIf(v.Local.iTemp,=,6)
+			v.Local.sSpace.Set("      ")
+		F.Intrinsic.Control.ElseIf(v.Local.iTemp,=,7)
+			v.Local.sSpace.Set("       ")
+		F.Intrinsic.Control.ElseIf(v.Local.iTemp,=,8)
+			v.Local.sSpace.Set("        ")
+		F.Intrinsic.Control.ElseIf(v.Local.iTemp,=,9)
+			v.Local.sSpace.Set("         ")
+		F.Intrinsic.Control.ElseIf(v.Local.iTemp,=,10)
+			v.Local.sSpace.Set("          ")
+		F.Intrinsic.Control.ElseIf(v.Local.iTemp,=,11)
+			v.Local.sSpace.Set("           ")
+		F.Intrinsic.Control.ElseIf(v.Local.iTemp,=,12)
+			v.Local.sSpace.Set("            ")
+		F.Intrinsic.Control.ElseIf(v.Local.iTemp,=,13)
+			v.Local.sSpace.Set("             ")
+		F.Intrinsic.Control.ElseIf(v.Local.iTemp,=,14)
+			v.Local.sSpace.Set("              ")
+		F.Intrinsic.Control.ElseIf(v.Local.iTemp,=,15)
+			v.Local.sSpace.Set("               ")
+		F.Intrinsic.Control.ElseIf(v.Local.iTemp,=,16)
+			v.Local.sSpace.Set("                ")
+		F.Intrinsic.Control.EndIf
+		F.Intrinsic.String.Concat(v.Local.sPart,v.Local.sSpace,v.DataTable.dtInventory(v.Local.iCnt).REV!FieldValTrim,v.Local.sPartRev)
+		F.Intrinsic.String.Build("SELECT * FROM INV_EXTRA_TEXT WHERE PART = '{0}'",v.Local.sPartRev,v.Local.sSQL2)
+		F.ODBC.Connection!conA.OpenLocalRecordsetRO("rstInventory",v.Local.sSQL2)
+		F.Intrinsic.Control.If(v.ODBC.conA!rstInventory.EOF,=,true)
+			v.Local.sComment.Set(v.DataTable.dtInventory(v.Local.iCnt).COMMENT!FieldValTrim)
+			F.Intrinsic.String.Build("INSERT INTO INV_EXTRA_TEXT VALUES('{0}','{1}')",v.Local.sPartRev,v.Local.sComment.PSQLFriendly,v.Local.sSQL)
+			F.ODBC.Connection!conA.Execute(v.Local.sSQL)
+		F.Intrinsic.Control.Else
+			F.Intrinsic.Control.If(v.Global.sBody,=,"")
+				F.Intrinsic.String.Build("Duplicate part: {0}{1}",v.Local.sPartRev,v.Ambient.NewLine,v.Global.sBody)
+			F.Intrinsic.Control.Else
+				F.Intrinsic.String.Build("{0}Duplicate part: {1}{2}",v.Global.sBody,v.Local.sPartRev,v.Ambient.NewLine,v.Global.sBody)
+			F.Intrinsic.Control.EndIf
+		F.Intrinsic.Control.EndIf
+		F.ODBC.conA!rstInventory.Close
+	F.Intrinsic.Control.Next(v.Local.iCnt)
+	
+	F.Data.DataTable.Close("dtInventory")
+	
+	F.Intrinsic.String.Build("{0}\FILES\HISTORY\COMMENT_UPLOAD\{1}\{2}\CommentsUploadErrorLog.txt",v.Caller.GlobalDir,v.Global.sSelection,v.Local.sDate,v.Local.sFile)
+	F.Intrinsic.File.String2File(v.Local.sFile,v.Global.sBody)
+
+	F.Intrinsic.Control.CallSub(checkinventory)
+	
+	F.Intrinsic.Control.Catch
+		F.Intrinsic.String.Build("Project: GAB_5848_Comments_Upload.g2u{0}{0}Subroutine: {1}{0}Error Occurred {2} with description {3}.",v.Ambient.NewLine,v.Ambient.CurrentSubroutine,v.Ambient.ErrorNumber,v.Ambient.ErrorDescription,v.Local.sError)
+		F.Intrinsic.UI.Msgbox(v.Local.sError)
+		F.Intrinsic.Control.End
+	F.Intrinsic.Control.EndTry
+
+Program.Sub.InsertInventory.End
+
+Program.Sub.CheckInventory.Start
+	F.Intrinsic.Control.Try
+	v.Local.sError.Declare
+
+	v.Local.iExcelCount.Declare
+	v.Local.iTableCountAfter.Declare
+	v.Local.iTemp.Declare
+	v.Local.sMsg.Declare
+	v.Local.sFile.Declare
+	v.Local.sDate.Declare
+	v.Local.iRet.Declare
+	
+	F.Intrinsic.String.DateString(v.Ambient.Date,v.Local.sDate)
+	F.Intrinsic.String.Replace(v.Local.sDate,"/","",v.Local.sDate)
+	
+	F.Automation.MSExcel.CreateAppObject("Inventory")
+	F.Automation.MSExcel.OpenWorkbook("Inventory","IWB",v.Global.sPath)
+	F.Automation.MSExcel.OpenWorksheet("IWB","WS1",1)
+	F.Automation.MSExcel.RowCount("WS1",v.Local.iExcelCount)
+	F.Automation.MSExcel.DestroyAllObjects("Inventory","IWB","WS1")
+	
+	F.Intrinsic.String.Build("{0} record(s) uploaded.",v.Local.iExcelCount,v.Local.sMsg)
+	
+	F.ODBC.Connection!conA.ExecuteAndReturn("SELECT COUNT(PART) FROM INV_EXTRA_TEXT",v.Local.iTableCountAfter)
+	
+	F.Intrinsic.Control.If(v.Global.sBody,=,"")
+		F.Intrinsic.UI.Msgbox(v.Local.sMsg,"Upload Complete")
+	F.Intrinsic.Control.Else
+		F.Intrinsic.String.Build("{0}\FILES\HISTORY\COMMENT_UPLOAD\{1}\{2}\CommentsUploadErrorLog.txt",v.Caller.GlobalDir,v.Global.sSelection,v.Local.sDate,v.Local.sFile)
+		F.Intrinsic.Task.ShellExec(0,"",v.Local.sFile,"","",1)
+		F.Intrinsic.UI.Msgbox("Not all records were uploaded.  Please check the error log.","Error")
+	F.Intrinsic.Control.EndIf
+	
+	Gui.frmMain.txtPath.Text("")
+	
+	F.ODBC.Connection!conA.Close
+	
+	F.Intrinsic.Control.Catch
+		F.Intrinsic.String.Build("Project: GAB_5848_Comments_Upload.g2u{0}{0}Subroutine: {1}{0}Error Occurred {2} with description {3}.",v.Ambient.NewLine,v.Ambient.CurrentSubroutine,v.Ambient.ErrorNumber,v.Ambient.ErrorDescription,v.Local.sError)
+		F.Intrinsic.UI.Msgbox(v.Local.sError)
+		F.Intrinsic.Control.End
+	F.Intrinsic.Control.EndTry
+	
+	Gui.frmMain..Enabled(true)
+	
+	v.Global.iTableCount.Set("")
+	v.Global.sAppDel.Set("")
+	v.Global.sBody.Set("")
+	v.Global.sPath.Set("")
+	v.Global.sSelection.Set("")
+	
+Program.Sub.CheckInventory.End
+
+Program.Sub.InsertWorkOrder.Start
+	F.Intrinsic.Control.Try
+	v.Local.sError.Declare
+	v.Local.sComment.Declare
+	
+	F.ODBC.Connection!conA.OpenConnection(v.Ambient.PDSN,v.Ambient.PUser,v.Ambient.PPass)
+	
+	v.Local.sDataString.Declare
+	v.Local.iCnt.Declare
+	v.Local.sSQL.Declare
+	v.Local.sSQL2.Declare
+	v.Local.sFile.Declare
+	v.Local.sDate.Declare
+	
+	F.Intrinsic.String.DateString(v.Ambient.Date,v.Local.sDate)
+	F.Intrinsic.String.Replace(v.Local.sDate,"/","",v.Local.sDate)
+	
+	F.ODBC.Connection!conA.ExecuteAndReturn("SELECT COUNT(WO) FROM WO_SEQ_COMMENTS",v.Global.iTableCount)
+	
+	F.Intrinsic.Control.If(v.Global.sAppDel,=,"Delete Existing Data")
+		F.ODBC.Connection!conA.Execute("DELETE FROM WO_SEQ_COMMENTS")
+	F.Intrinsic.Control.EndIf
+	
+	F.Automation.MSExcel.ReadSpreadsheet(v.Global.sPath,v.Local.sDataString)
+	
+	F.Intrinsic.Control.If(v.DataTable.dtWorkOrder.Exists)
+		F.Data.DataTable.Close("dtWorkOrder")
+	F.Intrinsic.Control.EndIf
+	
+	'Read Spreadsheet, convert it to a string, then execute insert statement for each row - *!* for cells and $!$ for rows
+	F.Data.DataTable.CreateFromString("dtWorkOrder",v.Local.sDataString,"WO*!*WO_SUFFIX*!*WO_SEQ*!*TEXT","String*!*String*!*String*!*String","*!*","$!$",true)
+	
+	'Loop through data table to build and execute insert statements
+	F.Intrinsic.Control.For(v.Local.iCnt,0,v.DataTable.dtWorkOrder.RowCount--,1)
+		F.Intrinsic.String.Build("SELECT * FROM WO_SEQ_COMMENTS WHERE WO = '{0}' AND WO_SUFFIX = '{1}'",v.DataTable.dtWorkOrder(v.Local.iCnt).WO!FieldValTrim,v.DataTable.dtWorkOrder(v.Local.iCnt).WO_SUFFIX!FieldValTrim,v.Local.sSQL2)
+		F.ODBC.Connection!conA.OpenLocalRecordsetRO("rstWO",v.Local.sSQL2)
+		F.Intrinsic.Control.If(v.ODBC.conA!rstWO.EOF,=,true)
+			v.Local.sComment.Set(v.DataTable.dtWorkOrder(v.Local.iCnt).TEXT!FieldValTrim)
+			F.Intrinsic.String.Build("INSERT INTO WO_SEQ_COMMENTS VALUES ('{0}', '{1}', '{2}', '{3}')",v.DataTable.dtWorkOrder(v.Local.iCnt).WO!FieldValTrim,v.DataTable.dtWorkOrder(v.Local.iCnt).WO_SUFFIX!FieldValTrim,v.DataTable.dtWorkOrder(v.Local.iCnt).WO_SEQ!FieldValTrim,v.Local.sComment.PSQLFriendly,v.Local.sSQL)
+			F.ODBC.Connection!conA.Execute(v.Local.sSQL)
+		F.Intrinsic.Control.Else
+			F.Intrinsic.Control.If(v.Global.sBody,=,"")
+				F.Intrinsic.String.Build("Duplicate Work Order:  {0}-{1}{2}",v.DataTable.dtWorkOrder(v.Local.iCnt).WO!FieldValTrim,v.DataTable.dtWorkOrder(v.Local.iCnt).WO_SUFFIX!FieldValTrim,v.Ambient.NewLine,v.Global.sBody)
+			F.Intrinsic.Control.Else
+				F.Intrinsic.String.Build("{0}Duplicate Work Order:  {1}-{2}{3}",v.Global.sBody,v.DataTable.dtWorkOrder(v.Local.iCnt).WO!FieldValTrim,v.DataTable.dtWorkOrder(v.Local.iCnt).WO_SUFFIX!FieldValTrim,v.Ambient.NewLine,v.Global.sBody)
+			F.Intrinsic.Control.EndIf
+		F.Intrinsic.Control.EndIf
+		F.ODBC.conA!rstWO.Close
+	F.Intrinsic.Control.Next(v.Local.iCnt)
+	
+	F.Data.DataTable.Close("dtWorkOrder")
+	
+	F.Intrinsic.String.Build("{0}\FILES\HISTORY\COMMENT_UPLOAD\{1}\{2}\CommentsUploadErrorLog.txt",v.Caller.GlobalDir,v.Global.sSelection,v.Local.sDate,v.Local.sFile)
+	F.Intrinsic.File.String2File(v.Local.sFile,v.Global.sBody)
+	
+	F.Intrinsic.Control.CallSub(checkWorkOrder)
+	
+	F.Intrinsic.Control.Catch
+		F.Intrinsic.String.Build("Project: GAB_5848_Comments_Upload.g2u{0}{0}Subroutine: {1}{0}Error Occurred {2} with description {3}.",v.Ambient.NewLine,v.Ambient.CurrentSubroutine,v.Ambient.ErrorNumber,v.Ambient.ErrorDescription,v.Local.sError)
+		F.Intrinsic.UI.Msgbox(v.Local.sError)
+		F.Intrinsic.Control.End
+	F.Intrinsic.Control.EndTry
+
+Program.Sub.InsertWorkOrder.End
+
+Program.Sub.CheckWorkOrder.Start
+	F.Intrinsic.Control.Try
+	v.Local.sError.Declare
+	
+	v.Local.iExcelCount.Declare
+	v.Local.iTableCountAfter.Declare
+	v.Local.iTemp.Declare
+	v.Local.sMsg.Declare
+	v.Local.sFile.Declare
+	v.Local.sDate.Declare
+	v.Local.iRet.Declare
+	
+	F.Intrinsic.String.DateString(v.Ambient.Date,v.Local.sDate)
+	F.Intrinsic.String.Replace(v.Local.sDate,"/","",v.Local.sDate)
+	
+	F.Automation.MSExcel.CreateAppObject("WO")
+	F.Automation.MSExcel.OpenWorkbook("WO","WBWO",v.Global.sPath)
+	F.Automation.MSExcel.OpenWorksheet("WBWO","WS1",1)
+	F.Automation.MSExcel.RowCount("WS1",v.Local.iExcelCount)
+	F.Automation.MSExcel.DestroyAllObjects("WO","WBWO","WS1")
+	
+	F.ODBC.Connection!conA.ExecuteAndReturn("SELECT COUNT(WO) FROM WO_SEQ_COMMENTS",v.Local.iTableCountAfter)
+	
+	F.Intrinsic.String.Build("{0} records(s) uploaded.",v.Local.iExcelCount,v.Local.sMsg)
+	
+	F.Intrinsic.Control.If(v.Global.sBody,=,"")
+		F.Intrinsic.UI.Msgbox(v.Local.sMsg,"Upload Complete")
+	F.Intrinsic.Control.Else
+		F.Intrinsic.String.Build("{0}\FILES\HISTORY\COMMENT_UPLOAD\{1}\{2}\CommentsUploadErrorLog.txt",v.Caller.GlobalDir,v.Global.sSelection,v.Local.sDate,v.Local.sFile)
+		F.Intrinsic.Task.ShellExec(0,"",v.Local.sFile,"","",1)
+		F.Intrinsic.UI.Msgbox("Not all records were uploaded.  Please check the error log.","Error")
+	F.Intrinsic.Control.EndIf
+	
+	Gui.frmMain.txtPath.Text("")
+	
+	F.ODBC.Connection!conA.Close
+	
+	F.Intrinsic.Control.Catch
+		F.Intrinsic.String.Build("Project: GAB_5848_Comments_Upload.g2u{0}{0}Subroutine: {1}{0}Error Occurred {2} with description {3}.",v.Ambient.NewLine,v.Ambient.CurrentSubroutine,v.Ambient.ErrorNumber,v.Ambient.ErrorDescription,v.Local.sError)
+		F.Intrinsic.UI.Msgbox(v.Local.sError)
+		F.Intrinsic.Control.End
+	F.Intrinsic.Control.EndTry
+	
+	Gui.frmMain..Enabled(true)
+	
+	v.Global.iTableCount.Set("")
+	v.Global.sAppDel.Set("")
+	v.Global.sBody.Set("")
+	v.Global.sPath.Set("")
+	v.Global.sSelection.Set("")
+
+Program.Sub.CheckWorkOrder.End
+
+Program.Sub.InsertSOHeader.Start
+	F.Intrinsic.Control.Try
+	v.Local.sError.Declare
+	v.Local.sComment.Declare
+	
+	F.ODBC.Connection!conA.OpenConnection(v.Ambient.PDSN,v.Ambient.PUser,v.Ambient.PPass)
+	
+	v.Local.sDataString.Declare
+	v.Local.iCnt.Declare
+	v.Local.sSQL.Declare
+	v.Local.sSQL2.Declare
+	v.Local.sFile.Declare
+	v.Local.sDate.Declare
+	
+	F.Intrinsic.String.DateString(v.Ambient.Date,v.Local.sDate)
+	F.Intrinsic.String.Replace(v.Local.sDate,"/","",v.Local.sDate)
+	
+	F.ODBC.Connection!conA.ExecuteAndReturn("SELECT COUNT(ORDER_NUMBER) FROM ORDER_HF_TEXT",v.Global.iTableCount)
+	
+	F.Intrinsic.Control.If(v.Global.sAppDel,=,"Delete Existing Data")
+		F.ODBC.Connection!conA.Execute("DELETE FROM ORDER_HF_TEXT")
+	F.Intrinsic.Control.EndIf
+	
+	F.Intrinsic.Control.If(v.DataTable.dtSOH.Exists)
+		F.Data.DataTable.Close("dtSOH")
+	F.Intrinsic.Control.EndIf
+	
+	F.Automation.MSExcel.ReadSpreadsheet(v.Global.sPath,v.Local.sDataString)
+	
+	'Read Spreadsheet, convert it to a string, then execute insert statement for each row - *!* for cells and $!$ for rows
+	F.Data.DataTable.CreateFromString("dtSOH",v.Local.sDataString,"ORDER_NUMBER*!*TYPE*!*ON_SORDR*!*ON_INVC*!*ON_BOL*!*ON_PKLIST*!*ON_QUOTE*!*TEXT","String*!*String*!*String*!*String*!*String*!*String*!*String*!*String","*!*","$!$",true)
+	
+	'Loop through data table to build and execute insert statements
+'	F.Intrinsic.Control.For(v.Local.iCnt,0,v.DataTable.dtSOH.RowCount--,1)
+'		F.Intrinsic.String.Build("SELECT * FROM ORDER_HF_TEXT WHERE ORDER_NUMBER = '{0}' AND TYPE = '{1}' AND ON_SORDR = '{2}' AND ON_INVC = '{3}' AND ON_BOL = '{4}' AND ON_PKLIST = '{5}' AND ON_QUOTE = '{6}'",v.DataTable.dtSOH(v.Local.iCnt).ORDER_NUMBER!FieldValTrim,v.DataTable.dtSOH(v.Local.iCnt).TYPE!FieldValTrim,v.DataTable.dtSOH(v.Local.iCnt).ON_SORDR!FieldValTrim,v.DataTable.dtSOH(v.Local.iCnt).ON_INVC!FieldValTrim,v.DataTable.dtSOH(v.Local.iCnt).ON_PKLIST!FieldValTrim,v.DataTable.dtSOH(v.Local.iCnt).ON_QUOTE!FieldValTrim,v.Local.sSQL2)
+'		F.ODBC.Connection!conA.OpenLocalRecordsetRO("rstSOH",v.Local.sSQL2)
+'		F.Intrinsic.Control.If(v.ODBC.conA!rstSOH.EOF,=,true)
+'			v.Local.sComment.Set(v.DataTable.dtSOH(v.Local.iCnt).TEXT!FieldValTrim)
+'			
+'			Function.Intrinsic.Debug.Stop
+'			
+'			F.Intrinsic.String.Build("INSERT INTO ORDER_HF_TEXT VALUES ('{0}', '{1}', '{2}', '{3}', '{4}', '{5}', '{6}', '{7}', '{8}')",v.DataTable.dtSOH(v.Local.iCnt).ORDER_NUMBER!FieldValTrim,v.DataTable.dtSOH(v.Local.iCnt).TYPE!FieldValTrim,v.DataTable.dtSOH(v.Local.iCnt).ON_SORDR!FieldValTrim,v.DataTable.dtSOH(v.Local.iCnt).ON_INVC!FieldValTrim,v.DataTable.dtSOH(v.Local.iCnt).ON_BOL!FieldValTrim,v.DataTable.dtSOH(v.Local.iCnt).ON_PKLIST!FieldValTrim,v.DataTable.dtSOH(v.Local.iCnt).ON_QUOTE!FieldValTrim,"",v.Local.sComment.PSQLFriendly,v.Local.sSQL)
+'			F.ODBC.Connection!conA.Execute(v.Local.sSQL)
+'		F.Intrinsic.Control.Else
+'			F.Intrinsic.Control.If(v.Global.sBody,=,"")
+'				F.Intrinsic.String.Build("Duplicate Sales Order:  {0}{1}",v.DataTable.dtSOH(v.Local.iCnt).ORDER_NUMBER!FieldValTrim,v.Ambient.NewLine,v.Global.sBody)
+'			F.Intrinsic.Control.Else
+'				F.Intrinsic.String.Build("{0}Duplicate Sales Order:  {0}{1}",v.Global.sBody,v.DataTable.dtSOH(v.Local.iCnt).ORDER_NUMBER!FieldValTrim,v.Ambient.NewLine,v.Global.sBody)
+'			F.Intrinsic.Control.EndIf
+'		F.Intrinsic.Control.EndIf
+'		F.ODBC.conA!rstSOH.Close
+'	F.Intrinsic.Control.Next(v.Local.iCnt)
+	
+	'******************************************************Modified 08/28/2023 by Trent Maynard*************************************************************************************
+	'Switched to use objects instead of sql
+	v.Local.lConnectionIndex.Declare
+	v.Local.lStatusReturn.Declare
+	f.Global.Object.CreateDB("DbObject",v.Local.lConnectionIndex)
+	F.Intrinsic.Control.For(v.Local.iCnt,0,v.DataTable.dtSOH.RowCount--,1)
+		f.Global.Object.Create("Comment","Sales.SalesOrderComment","DbObject",True)
+		'Order Number
+		f.Global.Object.SetValue("Comment","SalesOrderNumber",v.DataTable.dtSOH(v.Local.iCnt).ORDER_NUMBER!FieldValTrim)
+		'All these If's are necessary because the data could be anything, so just checking if it's 1 and if not assuming false
+		'Is Footer
+		f.Intrinsic.Control.If(v.DataTable.dtSOH(v.Local.iCnt).TYPE!FieldValTrim,=,1)
+			f.Global.Object.SetValue("Comment","IsFooter",True)
+		f.Intrinsic.Control.Else
+			f.Global.Object.SetValue("Comment","IsFooter",False)
+		f.Intrinsic.Control.EndIf
+		'Print on Order
+		f.Intrinsic.Control.If(v.DataTable.dtSOH(v.Local.iCnt).ON_SORDR!FieldValTrim,=,1)
+			f.Global.Object.SetValue("Comment","PrintOnSalesOrderAcknowledgement",True)
+		f.Intrinsic.Control.Else
+			f.Global.Object.SetValue("Comment","PrintOnSalesOrderAcknowledgement",False)
+		f.Intrinsic.Control.EndIf
+		'Print on Bill of Lading
+		f.Intrinsic.Control.If(v.DataTable.dtSOH(v.Local.iCnt).ON_BOL!FieldValTrim,=,1)
+			f.Global.Object.SetValue("Comment","PrintOnBillOfLading",True)
+		f.Intrinsic.Control.Else
+			f.Global.Object.SetValue("Comment","PrintOnBillOfLading",False)
+		f.Intrinsic.Control.EndIf
+		'Print On Invoice
+		f.Intrinsic.Control.If(v.DataTable.dtSOH(v.Local.iCnt).ON_INVC!FieldValTrim,=,1)
+			f.Global.Object.SetValue("Comment","PrintOnInvoice",True)
+		f.Intrinsic.Control.Else
+			f.Global.Object.SetValue("Comment","PrintOnInvoice",False)
+		f.Intrinsic.Control.EndIf
+		'Print on Packing List
+		f.Intrinsic.Control.If(v.DataTable.dtSOH(v.Local.iCnt).ON_PKLIST!FieldValTrim,=,1)
+			f.Global.Object.SetValue("Comment","PrintOnPackingList",True)
+		f.Intrinsic.Control.Else
+			f.Global.Object.SetValue("Comment","PrintOnPackingList",False)
+		f.Intrinsic.Control.EndIf
+		'Print on Quote
+		f.Intrinsic.Control.If(v.DataTable.dtSOH(v.Local.iCnt).ON_QUOTE!FieldValTrim,=,1)
+			f.Global.Object.SetValue("Comment","PrintOnQuote",True)
+		f.Intrinsic.Control.Else
+			f.Global.Object.SetValue("Comment","PrintOnQuote",False)
+		f.Intrinsic.Control.EndIf
+		'Comment/Text
+		f.Global.Object.SetValue("Comment","Information.Comment",v.DataTable.dtSOH(v.Local.iCnt).TEXT!FieldValTrim)
+		f.Global.Object.Insert("Comment",v.Local.lStatusReturn)
+		f.Global.Object.Dispose("Comment")
+		
+		'Error Handling on insert
+		f.Intrinsic.Control.SelectCase(v.Local.lStatusReturn)
+		f.Intrinsic.Control.Case(0) 'success
+			'do nothing
+		f.Intrinsic.Control.Case(5) 'duplicate key
+			F.Intrinsic.Control.If(v.Global.sBody,=,"")
+				F.Intrinsic.String.Build("Duplicate Key Exists(Sales Order, IsFooter, OnOrder, OnPackingList, OnInvoice, OnBol, OnQuote):  {0}{1}",v.DataTable.dtSOH(v.Local.iCnt).ORDER_NUMBER!FieldValTrim,v.Ambient.NewLine,v.Global.sBody)
+			F.Intrinsic.Control.Else
+				F.Intrinsic.String.Build("{0}Duplicate Key Exists(Sales Order, IsFooter, OnOrder, OnPackingList, OnInvoice, OnBol, OnQuote):  {1}{2}",v.Global.sBody,v.DataTable.dtSOH(v.Local.iCnt).ORDER_NUMBER!FieldValTrim,v.Ambient.NewLine,v.Global.sBody)
+			F.Intrinsic.Control.EndIf
+		f.Intrinsic.Control.CaseElse
+			F.Intrinsic.Control.If(v.Global.sBody,=,"")
+				F.Intrinsic.String.Build("Error Occured Inserting Sales Order Header-Footer Comment:  {0}{1}",v.DataTable.dtSOH(v.Local.iCnt).ORDER_NUMBER!FieldValTrim,v.Ambient.NewLine,v.Global.sBody)
+			F.Intrinsic.Control.Else
+				F.Intrinsic.String.Build("{0}Error Occured Inserting Sales Order Header-Footer Comment:  {1}{2}",v.Global.sBody,v.DataTable.dtSOH(v.Local.iCnt).ORDER_NUMBER!FieldValTrim,v.Ambient.NewLine,v.Global.sBody)
+			F.Intrinsic.Control.EndIf
+		f.Intrinsic.Control.EndSelect
+		
+	F.Intrinsic.Control.Next(v.Local.iCnt)
+	
+	
+	f.Global.Object.CreateDB("DbObject",v.Local.lConnectionIndex)
+	f.Global.Object.CloseConnection("DbObject",v.Local.lConnectionIndex)
+	
+	F.Data.DataTable.Close("dtSOH")
+	
+	F.Intrinsic.String.Build("{0}\FILES\HISTORY\COMMENT_UPLOAD\{1}\{2}\CommentsUploadErrorLog.txt",v.Caller.GlobalDir,v.Global.sSelection,v.Local.sDate,v.Local.sFile)
+	F.Intrinsic.File.String2File(v.Local.sFile,v.Global.sBody)
+		
+	F.Intrinsic.Control.CallSub(checksoheader)
+		
+	F.Intrinsic.Control.Catch
+		F.Intrinsic.String.Build("Project: GAB_5848_Comments_Upload.g2u{0}{0}Subroutine: {1}{0}Error Occurred {2} with description {3}.",v.Ambient.NewLine,v.Ambient.CurrentSubroutine,v.Ambient.ErrorNumber,v.Ambient.ErrorDescription,v.Local.sError)
+		F.Intrinsic.UI.Msgbox(v.Local.sError)
+		F.Intrinsic.Control.End
+	F.Intrinsic.Control.EndTry	
+
+Program.Sub.InsertSOHeader.End
+
+Program.Sub.CheckSOHeader.Start
+	F.Intrinsic.Control.Try
+	v.Local.sError.Declare
+	
+	v.Local.iExcelCount.Declare
+	v.Local.iTableCountAfter.Declare
+	v.Local.iTemp.Declare
+	v.Local.sMsg.Declare
+	v.Local.sFile.Declare
+	v.Local.sDate.Declare
+	v.Local.iRet.Declare
+	
+	F.Intrinsic.String.DateString(v.Ambient.Date,v.Local.sDate)
+	F.Intrinsic.String.Replace(v.Local.sDate,"/","",v.Local.sDate)
+	
+	F.Automation.MSExcel.CreateAppObject("SOH")
+	F.Automation.MSExcel.OpenWorkbook("SOH","WBSOH",v.Global.sPath)
+	F.Automation.MSExcel.OpenWorksheet("WBSOH","WS1",1)
+	F.Automation.MSExcel.RowCount("WS1",v.Local.iExcelCount)
+	F.Automation.MSExcel.DestroyAllObjects("SOH","WBSOH","WS1")
+	
+	F.ODBC.Connection!conA.ExecuteAndReturn("SELECT COUNT(ORDER_NUMBER) FROM ORDER_HF_TEXT",v.Local.iTableCountAfter)
+	
+	F.Intrinsic.String.Build("{0} records(s) uploaded.",v.Local.iExcelCount,v.Local.sMsg)
+	
+	F.Intrinsic.Control.If(v.Global.sBody,=,"")
+		F.Intrinsic.UI.Msgbox(v.Local.sMsg,"Upload Complete")
+	F.Intrinsic.Control.Else
+		F.Intrinsic.String.Build("{0}\FILES\HISTORY\COMMENT_UPLOAD\{1}\{2}\CommentsUploadErrorLog.txt",v.Caller.GlobalDir,v.Global.sSelection,v.Local.sDate,v.Local.sFile)
+		F.Intrinsic.Task.ShellExec(0,"",v.Local.sFile,"","",1)
+		F.Intrinsic.UI.Msgbox("Not all records were uploaded.  Please check the error log.","Error")
+	F.Intrinsic.Control.EndIf
+	
+	Gui.frmMain.txtPath.Text("")
+	
+	F.ODBC.Connection!conA.Close
+	
+	F.Intrinsic.Control.Catch
+		F.Intrinsic.String.Build("Project: GAB_5848_Comments_Upload.g2u{0}{0}Subroutine: {1}{0}Error Occurred {2} with description {3}.",v.Ambient.NewLine,v.Ambient.CurrentSubroutine,v.Ambient.ErrorNumber,v.Ambient.ErrorDescription,v.Local.sError)
+		F.Intrinsic.UI.Msgbox(v.Local.sError)
+		F.Intrinsic.Control.End
+	F.Intrinsic.Control.EndTry
+	
+	Gui.frmMain..Enabled(true)
+	
+	v.Global.iTableCount.Set("")
+	v.Global.sAppDel.Set("")
+	v.Global.sBody.Set("")
+	v.Global.sPath.Set("")
+	v.Global.sSelection.Set("")
+	
+Program.Sub.CheckSOHeader.End
+
+Program.Sub.InsertSOLine.Start
+	F.Intrinsic.Control.Try
+	v.Local.sError.Declare
+	v.Local.sComment.Declare
+	
+	F.ODBC.Connection!conA.OpenConnection(v.Ambient.PDSN,v.Ambient.PUser,v.Ambient.PPass)
+	
+	v.Local.sDataString.Declare
+	v.Local.iCnt.Declare
+	v.Local.sSQL.Declare
+	v.Local.sSQL2.Declare
+	v.Local.sFile.Declare
+	v.Local.sDate.Declare
+	
+	F.Intrinsic.String.DateString(v.Ambient.Date,v.Local.sDate)
+	F.Intrinsic.String.Replace(v.Local.sDate,"/","",v.Local.sDate)
+	
+	F.ODBC.Connection!conA.ExecuteAndReturn("SELECT COUNT(ORDER_NUM) FROM ORDER_LN_TEXT",v.Global.iTableCount)
+	
+	F.Intrinsic.Control.If(v.Global.sAppDel,=,"Delete Existing Data")
+		F.ODBC.Connection!conA.Execute("DELETE FROM ORDER_LN_TEXT")
+	F.Intrinsic.Control.EndIf
+	
+	F.Intrinsic.Control.If(v.DataTable.dtSOL.Exists)
+		F.Data.DataTable.Close("dtSOL")
+	F.Intrinsic.Control.EndIf
+	
+	F.Automation.MSExcel.ReadSpreadsheet(v.Global.sPath,v.Local.sDataString)
+
+	'Read spreadsheet, convert it to a string, then execute insert statement for each row - *!* for cells and $!$ for rows
+	F.Data.DataTable.CreateFromString("dtSOL",v.Local.sDataString,"ORDER_NUM*!*ORDER_LINE*!*TEXT","String*!*String*!*String","*!*","$!$",true)
+	
+	'Loop through data table to build and execute insert statements
+	F.Intrinsic.Control.For(v.Local.iCnt,0,v.DataTable.dtSOL.RowCount--,1)
+		F.Intrinsic.String.Build("SELECT * FROM ORDER_LN_TEXT WHERE ORDER_NUM = '{0}' AND ORDER_LINE = '{1}'",v.DataTable.dtSOL(v.Local.iCnt).ORDER_NUM!FieldValTrim,v.DataTable.dtSOL(v.Local.iCnt).ORDER_LINE!FieldValTrim,v.Local.sSQL2)
+		F.ODBC.Connection!conA.OpenLocalRecordsetRO("rstSOL",v.Local.sSQL2)
+		F.Intrinsic.Control.If(v.ODBC.conA!rstSOL.EOF,=,true)
+			v.Local.sComment.Set(v.DataTable.dtSOL(v.Local.iCnt).TEXT!FieldValTrim)
+			F.Intrinsic.String.Build("INSERT INTO ORDER_LN_TEXT VALUES ('{0}', '{1}', '9999', '{2}')",v.DataTable.dtSOL(v.Local.iCnt).ORDER_NUM!FieldValTrim,v.DataTable.dtSOL(v.Local.iCnt).ORDER_LINE!FieldValTrim,v.Local.sComment.PSQLFriendly,v.Local.sSQL)
+			F.ODBC.Connection!conA.Execute(v.Local.sSQL)
+		F.Intrinsic.Control.Else
+			F.Intrinsic.Control.If(v.Global.sBody,=,"")
+				F.Intrinsic.String.Build("Duplicate Sales Order/Line:  {0} Line:  {1}{2}",v.DataTable.dtSOL(v.Local.iCnt).ORDER_NUM!FieldValTrim,v.DataTable.dtSOL(v.Local.iCnt).ORDER_LINE!FieldValTrim,v.Ambient.NewLine,v.Global.sBody)
+			F.Intrinsic.Control.Else
+				F.Intrinsic.String.Build("{0}Duplicate Sales Order/Line:  {1} Line:  {2}{3}",v.Global.sBody,v.DataTable.dtSOL(v.Local.iCnt).ORDER_NUM!FieldValTrim,v.DataTable.dtSOL(v.Local.iCnt).ORDER_LINE!FieldValTrim,v.Ambient.NewLine,v.Global.sBody)
+			F.Intrinsic.Control.EndIf
+		F.Intrinsic.Control.EndIf
+		F.ODBC.conA!rstSOL.Close
+	F.Intrinsic.Control.Next(v.Local.iCnt)
+	
+	F.Data.DataTable.Close("dtSOL")
+	
+	F.Intrinsic.String.Build("{0}\FILES\HISTORY\COMMENT_UPLOAD\{1}\{2}\CommentsUploadErrorLog.txt",v.Caller.GlobalDir,v.Global.sSelection,v.Local.sDate,v.Local.sFile)
+	F.Intrinsic.File.String2File(v.Local.sFile,v.Global.sBody)
+	
+	F.Intrinsic.Control.CallSub(checksoline)
+	
+	F.Intrinsic.Control.Catch
+		F.Intrinsic.String.Build("Project: GAB_5848_Comments_Upload.g2u{0}{0}Subroutine: {1}{0}Error Occurred {2} with description {3}.",v.Ambient.NewLine,v.Ambient.CurrentSubroutine,v.Ambient.ErrorNumber,v.Ambient.ErrorDescription,v.Local.sError)
+		F.Intrinsic.UI.Msgbox(v.Local.sError)
+		F.Intrinsic.Control.End
+	F.Intrinsic.Control.EndTry	
+
+Program.Sub.InsertSOLine.End
+
+Program.Sub.CheckSOLine.Start
+	F.Intrinsic.Control.Try
+	v.Local.sError.Declare
+	
+	v.Local.iExcelCount.Declare
+	v.Local.iTableCountAfter.Declare
+	v.Local.iTemp.Declare
+	v.Local.sMsg.Declare
+	v.Local.sFile.Declare
+	v.Local.sDate.Declare
+	v.Local.iRet.Declare
+	
+	F.Intrinsic.String.DateString(v.Ambient.Date,v.Local.sDate)
+	F.Intrinsic.String.Replace(v.Local.sDate,"/","",v.Local.sDate)
+	
+	F.Automation.MSExcel.CreateAppObject("SOL")
+	F.Automation.MSExcel.OpenWorkbook("SOL","WBSOL",v.Global.sPath)
+	F.Automation.MSExcel.OpenWorksheet("WBSOL","WS1",1)
+	F.Automation.MSExcel.RowCount("WS1",v.Local.iExcelCount)
+	F.Automation.MSExcel.DestroyAllObjects("SOL","WBSOL","WS1")
+	
+	F.ODBC.Connection!conA.ExecuteAndReturn("SELECT COUNT(ORDER_NUM) FROM ORDER_LN_TEXT",v.Local.iTableCountAfter)
+	
+	F.Intrinsic.String.Build("{0} records(s) uploaded.",v.Local.iExcelCount,v.Local.sMsg)
+	
+	F.Intrinsic.Control.If(v.Global.sBody,=,"")
+		F.Intrinsic.UI.Msgbox(v.Local.sMsg,"Upload Complete")
+	F.Intrinsic.Control.Else
+		F.Intrinsic.String.Build("{0}\FILES\HISTORY\COMMENT_UPLOAD\{1}\{2}\CommentsUploadErrorLog.txt",v.Caller.GlobalDir,v.Global.sSelection,v.Local.sDate,v.Local.sFile)
+		F.Intrinsic.Task.ShellExec(0,"",v.Local.sFile,"","",1)
+		F.Intrinsic.UI.Msgbox("Not all records were uploaded.  Please check the error log.","Error")
+	F.Intrinsic.Control.EndIf
+	
+	Gui.frmMain.txtPath.Text("")
+	
+	F.ODBC.Connection!conA.Close
+	
+	F.Intrinsic.Control.Catch
+		F.Intrinsic.String.Build("Project: GAB_5848_Comments_Upload.g2u{0}{0}Subroutine: {1}{0}Error Occurred {2} with description {3}.",v.Ambient.NewLine,v.Ambient.CurrentSubroutine,v.Ambient.ErrorNumber,v.Ambient.ErrorDescription,v.Local.sError)
+		F.Intrinsic.UI.Msgbox(v.Local.sError)
+		F.Intrinsic.Control.End
+	F.Intrinsic.Control.EndTry
+	
+	Gui.frmMain..Enabled(true)
+	
+	v.Global.iTableCount.Set("")
+	v.Global.sAppDel.Set("")
+	v.Global.sBody.Set("")
+	v.Global.sPath.Set("")
+	v.Global.sSelection.Set("")
+
+Program.Sub.CheckSOLine.End
+
+Program.Sub.InsertPOHeader.Start
+	F.Intrinsic.Control.Try
+	v.Local.sError.Declare
+	v.Local.sComment.Declare
+	
+	F.ODBC.Connection!conA.OpenConnection(v.Ambient.PDSN,v.Ambient.PUser,v.Ambient.PPass)
+	
+	v.Local.sDataString.Declare
+	v.Local.iCnt.Declare
+	v.Local.sSQL.Declare
+	v.Local.sSQL2.Declare
+	v.Local.sFile.Declare
+	v.Local.sDate.Declare
+	
+	F.Intrinsic.String.DateString(v.Ambient.Date,v.Local.sDate)
+	F.Intrinsic.String.Replace(v.Local.sDate,"/","",v.Local.sDate)
+	
+	F.ODBC.Connection!conA.ExecuteAndReturn("SELECT COUNT(PO_NUMBER) FROM PO_HF_TEXT",v.Global.iTableCount)
+	
+	F.Intrinsic.Control.If(v.Global.sAppDel,=,"Delete Existing Data")
+		F.ODBC.Connection!conA.Execute("DELETE FROM PO_HF_TEXT")
+	F.Intrinsic.Control.EndIf
+	
+	F.Intrinsic.Control.If(v.DataTable.dtPOH.Exists)
+		F.Data.DataTable.Close("dtPOH")
+	F.Intrinsic.Control.EndIf
+	
+	F.Automation.MSExcel.ReadSpreadsheet(v.Global.sPath,v.Local.sDataString)
+	
+	F.Data.DataTable.CreateFromString("dtPOH",v.Local.sDataString,"PO_NUMBER*!*PO_TYPE*!*TEXT","String*!*String*!*String","*!*","$!$",true)
+	
+	F.Intrinsic.Control.For(v.Local.iCnt,0,v.DataTable.dtPOH.RowCount--,1)
+		F.Intrinsic.String.Build("SELECT * FROM PO_HF_TEXT WHERE PO_NUMBER = '{0}' AND PO_TYPE = '{1}'",v.DataTable.dtPOH(v.Local.iCnt).PO_NUMBER!FieldValTrim,v.DataTable.dtPOH(v.Local.iCnt).PO_TYPE.FieldValTrim,v.Local.sSQL2)
+		F.ODBC.Connection!conA.OpenLocalRecordsetRO("rstPOH",v.Local.sSQL2)
+		F.Intrinsic.Control.If(v.ODBC.conA!rstPOH.EOF,=,true)
+			v.Local.sComment(v.DataTable.dtPOH(v.Local.iCnt).TEXT!FieldValTrim)
+			F.Intrinsic.String.Build("INSERT INTO PO_HF_TEXT VALUES ('{0}', '{1}', '{2}')",v.DataTable.dtPOH(v.Local.iCnt).PO_NUMBER!FieldValTrim,v.DataTable.dtPOH(v.Local.iCnt).PO_TYPE!FieldValTrim,v.Local.sComment.PSQLFriendly,v.Local.sSQL)
+			F.ODBC.Connection!conA.Execute(v.Local.sSQL)
+		F.Intrinsic.Control.Else
+			F.Intrinsic.Control.If(v.Global.sBody,=,"")
+				F.Intrinsic.String.Build("Duplicate Purchase Order:  {0}{1}",v.DataTable.dtPOH(v.Local.iCnt).PO_NUMBER!FieldValTrim,v.Ambient.NewLine,v.Global.sBody)
+			F.Intrinsic.Control.Else
+				F.Intrinsic.String.Build("{0}Duplicate Purchase Order:  {1}{2}",v.Global.sBody,v.DataTable.dtPOH(v.Local.iCnt).PO_NUMBER!FieldValTrim,v.Ambient.NewLine,v.Global.sBody)
+			F.Intrinsic.Control.EndIf
+		F.Intrinsic.Control.EndIf
+		F.ODBC.conA!rstPOH.Close
+	F.Intrinsic.Control.Next(v.Local.iCnt)
+	
+	F.Data.DataTable.Close("dtPOH")
+	
+	F.Intrinsic.String.Build("{0}\FILES\HISTORY\COMMENT_UPLOAD\{1}\{2}\CommentsUploadErrorLog.txt",v.Caller.GlobalDir,v.Global.sSelection,v.Local.sDate,v.Local.sFile)
+	F.Intrinsic.File.String2File(v.Local.sFile,v.Global.sBody)
+	
+	F.Intrinsic.Control.CallSub(checkpoheader)
+	
+	F.Intrinsic.Control.Catch
+		F.Intrinsic.String.Build("Project: GAB_5848_Comments_Upload.g2u{0}{0}Subroutine: {1}{0}Error Occurred {2} with description {3}.",v.Ambient.NewLine,v.Ambient.CurrentSubroutine,v.Ambient.ErrorNumber,v.Ambient.ErrorDescription,v.Local.sError)
+		F.Intrinsic.UI.Msgbox(v.Local.sError)
+		F.Intrinsic.Control.End
+	F.Intrinsic.Control.EndTry	
+	
+Program.Sub.InsertPOHeader.End
+
+Program.Sub.CheckPOHeader.Start
+	F.Intrinsic.Control.Try
+	v.Local.sError.Declare
+	
+	v.Local.iExcelCount.Declare
+	v.Local.iTableCountAfter.Declare
+	v.Local.iTemp.Declare
+	v.Local.sMsg.Declare
+	v.Local.sFile.Declare
+	v.Local.sDate.Declare
+	v.Local.iRet.Declare
+	
+	F.Intrinsic.String.DateString(v.Ambient.Date,v.Local.sDate)
+	F.Intrinsic.String.Replace(v.Local.sDate,"/","",v.Local.sDate)
+	
+	F.Automation.MSExcel.CreateAppObject("POL")
+	F.Automation.MSExcel.OpenWorkbook("POL","WBPOL",v.Global.sPath)
+	F.Automation.MSExcel.OpenWorksheet("WBPOL","WS1",1)
+	F.Automation.MSExcel.RowCount("WS1",v.Local.iExcelCount)
+	F.Automation.MSExcel.DestroyAllObjects("POL","WBPOL","WS1")
+	
+	F.ODBC.Connection!conA.ExecuteAndReturn("SELECT COUNT(PO_NUMBER) FROM PO_HF_TEXT",v.Local.iTableCountAfter)
+	
+	F.Intrinsic.String.Build("{0} records(s) uploaded.",v.Local.iExcelCount,v.Local.sMsg)
+	
+	F.Intrinsic.Control.If(v.Global.sBody,=,"")
+		F.Intrinsic.UI.Msgbox(v.Local.sMsg,"Upload Complete")
+	F.Intrinsic.Control.Else
+		F.Intrinsic.String.Build("{0}\FILES\HISTORY\COMMENT_UPLOAD\{1}\{2}\CommentsUploadErrorLog.txt",v.Caller.GlobalDir,v.Global.sSelection,v.Local.sDate,v.Local.sFile)
+		F.Intrinsic.Task.ShellExec(0,"",v.Local.sFile,"","",1)
+		F.Intrinsic.UI.Msgbox("Not all records were uploaded.  Please check the error log.","Error")
+	F.Intrinsic.Control.EndIf
+	
+	Gui.frmMain.txtPath.Text("")
+	
+	F.ODBC.Connection!conA.Close
+	
+	F.Intrinsic.Control.Catch
+		F.Intrinsic.String.Build("Project: GAB_5848_Comments_Upload.g2u{0}{0}Subroutine: {1}{0}Error Occurred {2} with description {3}.",v.Ambient.NewLine,v.Ambient.CurrentSubroutine,v.Ambient.ErrorNumber,v.Ambient.ErrorDescription,v.Local.sError)
+		F.Intrinsic.UI.Msgbox(v.Local.sError)
+		F.Intrinsic.Control.End
+	F.Intrinsic.Control.EndTry
+	
+	Gui.frmMain..Enabled(true)
+	
+	v.Global.iTableCount.Set("")
+	v.Global.sAppDel.Set("")
+	v.Global.sBody.Set("")
+	v.Global.sPath.Set("")
+	v.Global.sSelection.Set("")
+	
+Program.Sub.CheckPOHeader.End
+
+Program.Sub.InsertPOLine.Start
+	F.Intrinsic.Control.Try
+	v.Local.sError.Declare
+	v.Local.sComment.Declare
+	
+	F.ODBC.Connection!conA.OpenConnection(v.Ambient.PDSN,v.Ambient.PUser,v.Ambient.PPass)
+	
+	v.Local.sDataString.Declare
+	v.Local.iCnt.Declare
+	v.Local.sSQL.Declare
+	v.Local.sSQL2.Declare
+	v.Local.sFile.Declare
+	v.Local.sDate.Declare
+	
+	F.Intrinsic.String.DateString(v.Ambient.Date,v.Local.sDate)
+	F.Intrinsic.String.Replace(v.Local.sDate,"/","",v.Local.sDate)
+	
+	F.ODBC.Connection!conA.ExecuteAndReturn("SELECT COUNT(PO_NUM) FROM PO_LN_TEXT",v.Global.iTableCount)
+	
+	F.Intrinsic.Control.If(v.Global.sAppDel,=,"Delete Existing Data")
+		F.ODBC.Connection!conA.Execute("DELETE FROM PO_LN_TEXT")
+	F.Intrinsic.Control.EndIf
+	
+	F.Intrinsic.Control.If(v.DataTable.dtPOL.Exists,=,true)
+		F.Data.DataTable.Close("dtPOL")
+	F.Intrinsic.Control.EndIf
+	
+	F.Automation.MSExcel.ReadSpreadsheet(v.Global.sPath,v.Local.sDataString)
+	
+	F.Data.DataTable.CreateFromString("dtPOL",v.Local.sDataString,"PO_NUM*!*LINE*!*TEXT","String*!*String*!*String","*!*","$!$",true)
+	
+	F.Intrinsic.Control.For(v.Local.iCnt,0,v.DataTable.dtPOL.RowCount--,1)
+		F.Intrinsic.String.Build("SELECT * FROM PO_LN_TEXT WHERE PO_NUM = '{0}' AND LINE = '{1}'",v.DataTable.dtPOL(v.Local.iCnt).PO_NUM.FieldValTrim,v.DataTable.dtPOL(v.Local.iCnt).LINE!FieldValTrim,v.Local.sSQL2)
+		F.ODBC.Connection!conA.OpenLocalRecordsetRO("rstPOL",v.Local.sSQL2)
+		F.Intrinsic.Control.If(v.ODBC.conA!rstPOL.EOF,=,true)
+			v.Local.sComment.Set(v.DataTable.dtPOL(v.Local.iCnt).TEXT!FieldValTrim)
+			F.Intrinsic.String.Build("INSERT INTO PO_LN_TEXT VALUES ('{0}', '{1}', '{2}')",v.DataTable.dtPOL(v.Local.iCnt).PO_NUM!FieldValTrim,v.DataTable.dtPOL(v.Local.iCnt).LINE!FieldValTrim,v.Local.sComment.PSQLFriendly,v.Local.sSQL)
+			F.ODBC.Connection!conA.Execute(v.Local.sSQL)
+		F.Intrinsic.Control.Else
+			F.Intrinsic.Control.If(v.Global.sBody,=,"")
+				F.Intrinsic.String.Build("Duplicate Purchase Order/Line:  {0} Line:  {1}{2}",v.DataTable.dtPOL(v.Local.iCnt).PO_NUM!FieldValTrim,v.DataTable.dtPOL(v.Local.iCnt).LINE!FieldValTrim,v.Ambient.NewLine,v.Global.sBody)
+			F.Intrinsic.Control.Else
+				F.Intrinsic.String.Build("{0}Duplicate Purchase Order/Line:  {1} Line:  {2}{3}",v.Global.sBody,v.DataTable.dtPOL(v.Local.iCnt).PO_NUM!FieldValTrim,v.DataTable.dtPOL(v.Local.iCnt).LINE!FieldValTrim,v.Ambient.NewLine,v.Global.sBody)
+			F.Intrinsic.Control.EndIf
+		F.Intrinsic.Control.EndIf
+		F.ODBC.conA!rstPOL.Close
+	F.Intrinsic.Control.Next(v.Local.iCnt)
+	
+	F.Data.DataTable.Close("dtPOL")
+	
+	F.Intrinsic.Control.CallSub(checkpoline)
+	
+	F.Intrinsic.Control.Catch
+		F.Intrinsic.String.Build("Project: GAB_5848_Comments_Upload.g2u{0}{0}Subroutine: {1}{0}Error Occurred {2} with description {3}.",v.Ambient.NewLine,v.Ambient.CurrentSubroutine,v.Ambient.ErrorNumber,v.Ambient.ErrorDescription,v.Local.sError)
+		F.Intrinsic.UI.Msgbox(v.Local.sError)
+		F.Intrinsic.Control.End
+	F.Intrinsic.Control.EndTry	
+
+Program.Sub.InsertPOLine.End
+
+Program.Sub.CheckPOLine.Start
+	F.Intrinsic.Control.Try
+	v.Local.sError.Declare
+	
+	v.Local.iExcelCount.Declare
+	v.Local.iTableCountAfter.Declare
+	v.Local.iTemp.Declare
+	v.Local.sMsg.Declare
+	v.Local.sFile.Declare
+	v.Local.sDate.Declare
+	v.Local.iRet.Declare
+	
+	F.Intrinsic.String.DateString(v.Ambient.Date,v.Local.sDate)
+	F.Intrinsic.String.Replace(v.Local.sDate,"/","",v.Local.sDate)
+	
+	F.Automation.MSExcel.CreateAppObject("SOL")
+	F.Automation.MSExcel.OpenWorkbook("SOL","WBSOL",v.Global.sPath)
+	F.Automation.MSExcel.OpenWorksheet("WBSOL","WS1",1)
+	F.Automation.MSExcel.RowCount("WS1",v.Local.iExcelCount)
+	F.Automation.MSExcel.DestroyAllObjects("SOL","WBSOL","WS1")
+	
+	F.ODBC.Connection!conA.ExecuteAndReturn("SELECT COUNT(PO_NUM) FROM PO_LN_TEXT",v.Local.iTableCountAfter)
+	
+	F.Intrinsic.String.Build("{0} records(s) uploaded.",v.Local.iExcelCount,v.Local.sMsg)
+	
+	F.Intrinsic.Control.If(v.Global.sBody,=,"")
+		F.Intrinsic.UI.Msgbox(v.Local.sMsg,"Upload Complete")
+	F.Intrinsic.Control.Else
+		F.Intrinsic.String.Build("{0}\FILES\HISTORY\COMMENT_UPLOAD\{1}\{2}\CommentsUploadErrorLog.txt",v.Caller.GlobalDir,v.Global.sSelection,v.Local.sDate,v.Local.sFile)
+		F.Intrinsic.Task.ShellExec(0,"",v.Local.sFile,"","",1)
+		F.Intrinsic.UI.Msgbox("Not all records were uploaded.  Please check the error log.","Error")
+	F.Intrinsic.Control.EndIf
+	
+	Gui.frmMain.txtPath.Text("")
+	
+	F.ODBC.Connection!conA.Close
+	
+	F.Intrinsic.Control.Catch
+		F.Intrinsic.String.Build("Project: GAB_5848_Comments_Upload.g2u{0}{0}Subroutine: {1}{0}Error Occurred {2} with description {3}.",v.Ambient.NewLine,v.Ambient.CurrentSubroutine,v.Ambient.ErrorNumber,v.Ambient.ErrorDescription,v.Local.sError)
+		F.Intrinsic.UI.Msgbox(v.Local.sError)
+		F.Intrinsic.Control.End
+	F.Intrinsic.Control.EndTry
+	
+	Gui.frmMain..Enabled(true)
+	
+	v.Global.iTableCount.Set("")
+	v.Global.sAppDel.Set("")
+	v.Global.sBody.Set("")
+	v.Global.sPath.Set("")
+	v.Global.sSelection.Set("")
+	
+Program.Sub.CheckPOLine.End
+
+Program.Sub.inserttextcode.Start
+
+F.Intrinsic.Control.Try
+	v.Local.sError.Declare
+	v.Local.sComment.Declare
+	
+	F.ODBC.Connection!conA.OpenConnection(v.Ambient.PDSN,v.Ambient.PUser,v.Ambient.PPass)
+	
+	v.Local.sDataString.Declare
+	v.Local.iCnt.Declare
+	v.Local.sSQL.Declare
+	v.Local.sSQL2.Declare
+	v.Local.sFile.Declare
+	v.Local.sDate.Declare
+	
+	F.Intrinsic.String.DateString(v.Ambient.Date,v.Local.sDate)
+	F.Intrinsic.String.Replace(v.Local.sDate,"/","",v.Local.sDate)
+	
+	F.ODBC.Connection!conA.ExecuteAndReturn("SELECT COUNT(NUMBER) FROM TEXT_CODES",v.Global.iTableCount)
+	
+	F.Intrinsic.Control.If(v.Global.sAppDel,=,"Delete Existing Data")
+		F.ODBC.Connection!conA.Execute("DELETE FROM TEXT_CODES")
+	F.Intrinsic.Control.EndIf
+	
+	F.Intrinsic.Control.If(v.DataTable.dtTEXTCODE.Exists,=,true)
+		F.Data.DataTable.Close("dtTEXTCODE")
+	F.Intrinsic.Control.EndIf
+	
+	F.Automation.MSExcel.ReadSpreadsheet(v.Global.sPath,v.Local.sDataString)
+
+	
+	F.Data.DataTable.CreateFromString("dtTEXTCODE",v.Local.sDataString,"CDNBR*!*TEXT","String*!*String","*!*","$!$",true)
+	
+	F.Intrinsic.Control.For(v.Local.iCnt,0,v.DataTable.dtTEXTCODE.RowCount--,1)
+		F.Intrinsic.String.Build("SELECT * FROM TEXT_CODES WHERE NUMBER = '{0}'",v.DataTable.dtTEXTCODE(v.Local.iCnt).CDNBR.FieldValTrim,v.Local.sSQL2)
+		F.ODBC.Connection!conA.OpenLocalRecordsetRO("rstTEXTCODE",v.Local.sSQL2)
+		F.Intrinsic.Control.If(v.ODBC.conA!rstTEXTCODE.EOF,=,true)
+			v.Local.sComment.Set(v.DataTable.dtTEXTCODE(v.Local.iCnt).TEXT!FieldValTrim)
+			F.Intrinsic.String.Build("INSERT INTO TEXT_CODES VALUES ('{0}', '{1}')",v.DataTable.dtTEXTCODE(v.Local.iCnt).CDNBR!FieldValTrim,v.Local.sComment.PSQLFriendly,v.Local.sSQL)
+			F.ODBC.Connection!conA.Execute(v.Local.sSQL)
+		F.Intrinsic.Control.Else
+			F.Intrinsic.Control.If(v.Global.sBody,=,"")
+				F.Intrinsic.String.Build("Duplicate Text Code:  {0}",v.DataTable.dtTEXTCODE(v.Local.iCnt).CDNBR!fieldvaltrim,v.Ambient.NewLine,v.Global.sBody)
+			F.Intrinsic.Control.Else
+				F.Intrinsic.String.Build("{0}Duplicate Text Code:  {1} ",v.Global.sBody,v.DataTable.dtTEXTCODE(v.Local.iCnt).CDNBR!fieldvaltrim,v.Ambient.NewLine,v.Global.sBody)
+			F.Intrinsic.Control.EndIf
+		F.Intrinsic.Control.EndIf
+		F.ODBC.conA!rstTEXTCODE.Close
+	F.Intrinsic.Control.Next(v.Local.iCnt)
+	
+	F.Data.DataTable.Close("dtTEXTCODE")
+	
+	
+	F.Intrinsic.String.Build("{0}\FILES\HISTORY\COMMENT_UPLOAD\{1}\{2}\CommentsUploadErrorLog.txt",v.Caller.GlobalDir,v.Global.sSelection,v.Local.sDate,v.Local.sFile)
+	F.Intrinsic.File.String2File(v.Local.sFile,v.Global.sBody)
+	
+	
+	F.Intrinsic.Control.CallSub(checktextcode)
+	
+	F.Intrinsic.Control.Catch
+		F.Intrinsic.String.Build("Project: GAB_5848_Comments_Upload.g2u{0}{0}Subroutine: {1}{0}Error Occurred {2} with description {3}.",v.Ambient.NewLine,v.Ambient.CurrentSubroutine,v.Ambient.ErrorNumber,v.Ambient.ErrorDescription,v.Local.sError)
+		F.Intrinsic.UI.Msgbox(v.Local.sError)
+		F.Intrinsic.Control.End
+	F.Intrinsic.Control.EndTry	
+
+
+
+
+
+Program.Sub.inserttextcode.End
+
+Program.Sub.CheckTextCode.Start
+
+F.Intrinsic.Control.Try
+	v.Local.sError.Declare
+	
+	v.Local.iExcelCount.Declare
+	v.Local.iTableCountAfter.Declare
+	v.Local.iTemp.Declare
+	v.Local.sMsg.Declare
+	v.Local.sFile.Declare
+	v.Local.sDate.Declare
+	v.Local.iRet.Declare
+	
+	F.Intrinsic.String.DateString(v.Ambient.Date,v.Local.sDate)
+	F.Intrinsic.String.Replace(v.Local.sDate,"/","",v.Local.sDate)
+	
+	F.Automation.MSExcel.CreateAppObject("TEXTCODE")
+	F.Automation.MSExcel.OpenWorkbook("TEXTCODE","WBTEXTCODE",v.Global.sPath)
+	F.Automation.MSExcel.OpenWorksheet("WBTEXTCODE","WS1",1)
+	F.Automation.MSExcel.RowCount("WS1",v.Local.iExcelCount)
+	F.Automation.MSExcel.DestroyAllObjects("TEXTCODE","WBTEXTCODE","WS1")
+	
+	F.ODBC.Connection!conA.ExecuteAndReturn("SELECT COUNT(NUMBER) FROM TEXT_CODES",v.Local.iTableCountAfter)
+	
+	F.Intrinsic.String.Build("{0} records(s) uploaded.",v.Local.iExcelCount,v.Local.sMsg)
+	
+	F.Intrinsic.Control.If(v.Global.sBody,=,"")
+		F.Intrinsic.UI.Msgbox(v.Local.sMsg,"Upload Complete")
+	F.Intrinsic.Control.Else
+		F.Intrinsic.String.Build("{0}\FILES\HISTORY\COMMENT_UPLOAD\{1}\{2}\CommentsUploadErrorLog.txt",v.Caller.GlobalDir,v.Global.sSelection,v.Local.sDate,v.Local.sFile)
+		F.Intrinsic.Task.ShellExec(0,"",v.Local.sFile,"","",1)
+		F.Intrinsic.UI.Msgbox("Not all records were uploaded.  Please check the error log.","Error")
+	F.Intrinsic.Control.EndIf
+	
+	Gui.frmMain.txtPath.Text("")
+	
+	F.ODBC.Connection!conA.Close
+	
+	F.Intrinsic.Control.Catch
+		F.Intrinsic.String.Build("Project: GAB_5848_Comments_Upload.g2u{0}{0}Subroutine: {1}{0}Error Occurred {2} with description {3}.",v.Ambient.NewLine,v.Ambient.CurrentSubroutine,v.Ambient.ErrorNumber,v.Ambient.ErrorDescription,v.Local.sError)
+		F.Intrinsic.UI.Msgbox(v.Local.sError)
+		F.Intrinsic.Control.End
+	F.Intrinsic.Control.EndTry
+	
+	Gui.frmMain..Enabled(true)
+	
+	v.Global.iTableCount.Set("")
+	v.Global.sAppDel.Set("")
+	v.Global.sBody.Set("")
+	v.Global.sPath.Set("")
+	v.Global.sSelection.Set("")
+	
+
+Program.Sub.CheckTextCode.End
+
+Program.Sub.Comments.Start
+${$5$}$2.0.0.0$}$2
+${$6$}$tmaynard$}$20230828120354140$}$xKE69A43uzVyrAkuo5z9kVZmFtNSRbWXRXLQ10sAbxtTlz+lpg5OTXJdhd2D6JuNkiGHZhbFejmQhqfrkYjJgA==
+Program.Sub.Comments.End
